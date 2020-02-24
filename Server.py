@@ -1,35 +1,48 @@
-import time
+
 import zmq
 import os
-import hashlib
+from datetime import datetime
 
 
 context = zmq.Context()
 socket = context.socket(zmq.REP)
-socket.bind("tcp://*:8850")
+socket.bind("tcp://*:9006")
+PathFile = os.path.dirname(os.path.abspath(__file__))
+
+def Strencode(strToEncode):
+    return str(strToEncode).encode("utf-8")
+
+def Bdecode(bToEncode):
+    return bToEncode.decode("utf-8")
 
 def TypeUpload(fileName,content):
 
+    fileName = Bdecode(fileName)
 
-    fileName = fileName.decode("utf-8")
-    fileName = os.path.dirname(os.path.abspath(__file__)) +"/" + fileName
+    FolderName = fileName.replace(".",",")
+    
+    if (not os.path.exists(PathFile +"/"+FolderName+"/")  ):
+        os.mkdir(FolderName)
+
+    fileName =  PathFile +"/"+FolderName+"/" + fileName
     archivo = open(fileName,'ab')
 
     archivo.write(content)
     archivo.close()
 
-    socket.send_string("recibido")
 
 
 def init():
+    
+    global socket
 
     while True:
-
+        
         MSJData = socket.recv_multipart()
 
         Type = MSJData[0]
         Type = Type.decode("utf-8")
-
+        
         if Type == "1" :
             TypeUpload(MSJData[1],MSJData[2])
 
@@ -38,6 +51,8 @@ def init():
 
         elif Type == "3" :
             print("3")
+            
+        socket.send_multipart([b"1"])
 
 
 init()
