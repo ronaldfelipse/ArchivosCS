@@ -1,8 +1,5 @@
 import zmq
-import math
-import sys
 import os.path
-import time
 
 context = zmq.Context()
 ps = 0

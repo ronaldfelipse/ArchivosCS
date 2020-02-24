@@ -1,37 +1,77 @@
 import zmq
-CantServUp = 0
+import threading
+
+
 ps =  1024*1024*2
+Servers = []
 
 context = zmq.Context()
-socket = context.socket(zmq.REP)
-socket.bind("tcp://*:8857")
+
+def Bdecode(bToEncode):
+    return bToEncode.decode("utf-8")
 
 def Strencode(strToEncode):
     return str(strToEncode).encode("utf-8")
 
 def FirstConex():
-    socket.send_multipart([Strencode(CantServUp),Strencode(ps)])
+    return ([Strencode(len(Servers)),Strencode(ps)])
 
 def UploadFile(FileName):
-    socket.send_multipart([b"1",b"localhost",b"9006"])
+    DataServer = Servers[0].split(":")
+    return ([b"1",Strencode(DataServer[0]),Strencode(DataServer[1]) ] )
+
+def NewServerON(Direccion,Puerto):
+    
+        global Servers
+        Servers.append(Direccion+":"+Puerto)
+    
+    
+def ListenServers():
+    
+        global context
+    
+        socketServers = context.socket(zmq.REP)
+        socketServers.bind("tcp://*:8855")
+        
+        while True:
+            MSJData = socketServers.recv_multipart()
+
+            Type = Bdecode(MSJData[0])
+
+            if Type == "0" :
+                 NewServerON(Bdecode(MSJData[1]),Bdecode(MSJData[2]))
+
+            socketServers.send_multipart([b"1"]) 
+
 
 def init():
+    
+        global context
+        
+        t = threading.Thread(target=ListenServers)
+        t.start()
+    
+        socketClients = context.socket(zmq.REP)
+        socketClients.bind("tcp://*:8857")
 
         while True:
-            MSJData = socket.recv_multipart()
+            MSJData = socketClients.recv_multipart()
 
             print("olis")
 
-            Type = MSJData[0]
-            Type = Type.decode("utf-8")
-
+            Type = Bdecode(MSJData[0])
+        
             if Type == "0" :
-                FirstConex()
+                Respt = FirstConex()
 
             elif Type == "1" :
-                UploadFile(MSJData[1].decode("utf-8"))
+                Respt = UploadFile(Bdecode(MSJData[1]))
 
             elif Type == "2" :
                 print("2")
+                
+            socketClients.send_multipart(Respt) 
+
+
 
 init()

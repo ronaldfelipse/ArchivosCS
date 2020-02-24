@@ -1,12 +1,12 @@
 
 import zmq
 import os
-from datetime import datetime
 
-
+MyIP = "localhost"
+MyPort = "9007"
 context = zmq.Context()
 socket = context.socket(zmq.REP)
-socket.bind("tcp://*:9006")
+socket.bind("tcp://*:"+MyPort)
 PathFile = os.path.dirname(os.path.abspath(__file__))
 
 def Strencode(strToEncode):
@@ -30,11 +30,20 @@ def TypeUpload(fileName,content):
     archivo.write(content)
     archivo.close()
 
-
+def ProxyConect():
+    global context
+    Path = "tcp://localhost:8855"
+    socket = context.socket(zmq.REQ)
+    socket.connect(Path)
+    socket.send_multipart([b"0",Strencode(MyIP),Strencode(MyPort)])
+    Msjresponse = socket.recv_multipart()
+    socket.close()
 
 def init():
     
     global socket
+    
+    ProxyConect()
 
     while True:
         
